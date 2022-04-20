@@ -199,9 +199,9 @@ class CrudField
     }
 
     /**
-     * when morphModels are defined, we should run the current field through 
+     * when morphModels are defined, we should run the current field through
      * the guessing functionality to setup everything we need and then
-     * setup the morphFields based on the provided options. 
+     * setup the morphFields based on the provided options.
      *
      * @param  array  $models  The models to be used in the morphTo relation
      * @return self
@@ -212,31 +212,33 @@ class CrudField
         $this->crud()->addMorphOptionsToMorphFields($this->attributes);
 
         return $this->save();
-    } 
+    }
 
     /**
-     * allow the developer to configure the morphType field
-     * 
-     * @param array $morphTypeField
+     * allow the developer to configure the morphType field.
+     *
+     * @param  array  $morphTypeField
      * @return self
      */
     public function morphTypeField(array $morphTypeField)
     {
         $this->attributes['morphTypeField'] = $morphTypeField;
         $this->crud()->modifyMorphTypeField($this->attributes);
+
         return $this->save();
     }
 
     /**
-     * allow the developer to configure the morphId field
-     * 
-     * @param array $morphIdField
+     * allow the developer to configure the morphId field.
+     *
+     * @param  array  $morphIdField
      * @return self
      */
     public function morphIdField(array $morphIdField)
     {
         $this->attributes['morphIdField'] = $morphIdField;
         $this->crud()->modifyMorphIdField($this->attributes);
+
         return $this->save();
     }
 
