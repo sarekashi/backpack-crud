@@ -58,6 +58,13 @@ trait Fields
         $field = $this->makeSureFieldHasType($field);
         $field = $this->makeSureSubfieldsHaveNecessaryAttributes($field);
 
+        if (isset($field['relation_type'])) {
+            switch ($field['relation_type']) {
+                case 'MorphTo':
+                    $this->createMorphRelationFields($field);
+                    break;
+            }
+        }
         return $field;
     }
 

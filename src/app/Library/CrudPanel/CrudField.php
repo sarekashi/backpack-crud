@@ -25,6 +25,9 @@ namespace Backpack\CRUD\app\Library\CrudPanel;
  * @method self wrapper(array $value)
  * @method self fake(bool $value)
  * @method self store_in(string $value)
+ * @method self morphModels(array $value)
+ * @method self morphIdField(array $value)
+ * @method self morphTypeField(array $value)
  */
 class CrudField
 {

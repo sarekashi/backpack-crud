@@ -354,4 +354,151 @@ trait Relationships
 
         return $method;
     }
+
+    /**
+     * this checks if the morphFields are setup for the given field relation, 
+     * if not, set them up for the developer
+     * 
+     * @param array $field
+     * 
+     * @return void
+     */
+    private function createMorphRelationFields(array $field) {
+
+        [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
+
+        if(! $this->hasFieldWhere('name', $morphTypeFieldName) && ! $this->hasFieldWhere('name', $morphIdFieldName)) {
+            $this->addMorphRelationFields($field);
+        }
+
+        if(isset($field['morphModels'])) {
+            $this->addMorphOptionsToMorphFields($field);
+        }
+    }
+
+    /**
+     * this function is responsible for modifying the morph fields and add
+     * the proper configuration after developer setup the `morphModels` in
+     * a fluent way.
+     * 
+     * @param array $field
+     * 
+     * @return void
+     */
+    public function addMorphOptionsToMorphFields($field) {
+        
+        [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
+
+        $modelOptions = [];
+        foreach($field['morphModels'] as $key => $model) {
+            if(is_array($field['morphModels'][$key])) {
+                $modelOptions[] = $key;
+                continue;
+            }
+            $modelOptions[] = $model;
+        }  
+        $this->modifyField($morphIdFieldName, ['morphModels' => $field['morphModels']]);
+        $this->modifyField($morphTypeFieldName, ['options' => array_combine($modelOptions, $modelOptions)]);
+    }
+
+    /**
+     * overrides the default morphTypeField configurations with the developer provided ones
+     * 
+     * @param $field
+     * 
+     * @return void
+     */
+    public function modifyMorphTypeField($field) {
+        [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
+        $this->modifyField($morphTypeFieldName, $field['morphTypeField']);
+    }
+
+    /**
+     * overrides the default morphIdField configurations with the developer provided ones
+     * 
+     * @param $field
+     * 
+     * @return void
+     */
+    public function modifyMorphIdField($field) {
+        [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
+        $this->modifyField($morphIdFieldName, $field['morphIdField']);
+    }
+
+    /**
+     * return the relation field names for a morphTo field
+     * 
+     * @param array $field the morphto relation field
+     * 
+     * @return array
+     *  
+     */
+    private function getMorphToFieldNames(array $field) {
+        $relation = (new $this->model)->{$field['name']}();
+        return [$relation->getMorphType(), $relation->getForeignKeyName()];
+    }
+
+    /**
+     * this function is reponsible for adding both morph fields into the crud panel.
+     * 
+     * @param array $field
+     * 
+     * @return void
+     * 
+     */
+    private function addMorphRelationFields($field) {
+        [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
+
+        $morphTypeField = static::getMorphTypeFieldStructure($field['name'], $morphTypeFieldName);
+        $morphIdField = static::getMorphIdFieldStructure($field['name'], $morphIdFieldName);
+
+        $this->addField(array_merge($morphTypeField, $field['morphTypeField'] ?? []));
+        $this->addField(array_merge($morphIdField, $field['morphIdField'] ?? []));
+    }
+
+    /**
+     * Returns the morphable_id field structure for morphTo relations
+     *
+     * @param  string  $relationName
+     * @param  string  $morphIdFieldName
+     * 
+     * @return array
+     */
+    private static function getMorphidFieldStructure($relationName, $morphIdFieldName)
+    {
+        return [
+            'name' => $morphIdFieldName,
+            'type' => 'relationship.morphTo_select',
+            'entity' => false,
+            'label' => Str::ucfirst($relationName),
+            'placeholder' => 'Select the ' . $relationName,
+            'allows_null' => true,
+            'attributes' => [
+                'data-morph-select' => $relationName.'-morph-select'
+            ],
+        ];
+    }
+
+    /**
+     * Returns the morphable_type field structure for morphTo relations
+     *
+     * @param  string  $relationName
+     * @param string $morphTypeFieldName
+     * 
+     * @return array
+     */
+    private static function getMorphTypeFieldStructure($relationName, $morphTypeFieldName)
+    {
+        return [
+            'name' => $morphTypeFieldName,
+            'type' => 'select2_from_array',
+            'multiple' => false,
+            'label' => Str::ucfirst($relationName),
+            'placeholder' => 'Select the ' . $relationName,
+            'allows_null' => true,
+            'attributes' => [
+                $relationName.'-morph-select' => true,
+            ],
+        ];
+    }
 }

@@ -179,6 +179,11 @@ trait Update
 
                 return $relatedModel->{$relationMethod};
                 break;
+            case 'MorphTo':
+                // nothing to do here, editing a morphTo is like editing
+                // two plain attributes of the model, but still a "relation"
+                return;
+                break;
             default:
                 return $relatedModel->{$relationMethod};
         }
