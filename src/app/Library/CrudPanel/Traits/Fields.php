@@ -65,6 +65,7 @@ trait Fields
                     break;
             }
         }
+
         return $field;
     }
 
