@@ -9,26 +9,42 @@
     class CrudField {
         constructor(fieldName) {
             this.name = fieldName;
-            this.wrapper = $('[bp-field-name="'+ this.name +'"]');
-            this.input = this.wrapper.find("[bp-field-main-input");
-            // if no bp-field-main-input has been declared in the field itself,
-            // assume it's the first input in that wrapper, whatever it is
-            if (this.input.length == 0) {
-                this.input = $('[bp-field-name="'+ this.name +'"] input, [bp-field-name="'+ this.name +'"] textarea, [bp-field-name="'+ this.name +'"] select').first();
+            this.wrapper = document.querySelector(`[bp-field-name="${this.name}"]`);
+            this.input = this.wrapper?.querySelector('[bp-field-main-input]') || document.querySelector(`[bp-field-name="${this.name}"] input, [bp-field-name="${this.name}"] textarea, [bp-field-name="${this.name}"] select`);
+        }
+
+        get value() {
+            let value = this.input?.value;
+
+            // Parse the value if it's a number
+            if (value.length && !isNaN(value)) {
+                value = Number(value);
             }
-            this.value = this.input.val();
+
+            return value;
+        }
+
+        set value(value) {
+            this.input.value = value;
         }
 
         change(closure) {
-            this.input.change(function(event) {
-                var fieldWrapper = $(this).closest('[bp-field-wrapper=true]');
-                var fieldName = fieldWrapper.attr('bp-field-name');
-                var fieldType = fieldWrapper.attr('bp-field-type');
-                var fieldValue = $(this).val();
+            const fieldChanged = event => {
+                const wrapper = this.input.closest('[bp-field-wrapper=true]');
+                const name = wrapper.getAttribute('bp-field-name');
+                const type = wrapper.getAttribute('bp-field-type');
+                const value = this.value;
 
-                // console.log('Changed field ' + fieldName + ' (type '+ fieldType + '), value is now ' + fieldValue);
-                closure(event, fieldValue, fieldName, fieldType);
-            }).change();
+                closure(event, value, name, type);
+            };
+
+            if (this.input) {
+                this.input.addEventListener('input', fieldChanged, false);
+                // this.input.addEventListener('change', fieldChanged, false);
+                $(this.input).change(fieldChanged);
+
+                fieldChanged();
+            }
 
             return this;
         }
@@ -37,50 +53,54 @@
             this.change(closure);
         }
 
-        hide(e) {
-            this.wrapper.hide();
-            this.input.trigger('backpack:field.hide');
+        show(value = true) {
+            if(this.wrapper) {
+                this.wrapper.style.display = value ? 'block' : 'none';
+            }
             return this;
         }
 
-        show(e) {
-            this.wrapper.show();
-            this.input.trigger('backpack:field.show');
+        hide() {
+            return this.show(false);
+        }
+
+        enable(value = true) {
+            if(value) {
+                this.input?.removeAttribute('disabled');
+                // this.input.dispatchEvent(new CustomEvent('backpack:field.enabled', { bubbles: true }));
+                $(this.input).trigger('backpack:field.enabled');
+            } else {
+                this.input?.setAttribute('disabled', 'disabled');
+                // this.input.dispatchEvent(new CustomEvent('backpack:field.disabled', { bubbles: true }));
+                $(this.input).trigger('backpack:field.disabled');
+            }
+
             return this;
         }
 
-        enable(e) {
-            this.input.removeAttr('disabled');
-            this.input.trigger('backpack:field.enable');
+        disable() {
+            return this.enable(false);
+        }
+
+        require(value = true) {
+            this.wrapper?.classList.toggle('required', value);
             return this;
         }
 
-        disable(e) {
-            this.input.attr('disabled', 'disabled');
-            this.input.trigger('backpack:field.disable');
+        unrequire() {
+            return this.require(false);
+        }
+
+        check(value = true) {
+            this.wrapper.querySelectorAll('input[type=checkbox]').forEach(checkbox => {
+                checkbox.checked = value;
+                checkbox.dispatchEvent(new Event('change'));
+            });
             return this;
         }
 
-        require(e) {
-            this.wrapper.removeClass('required').addClass('required');
-            this.input.trigger('backpack:field.require');
-            return this;
-        }
-
-        unrequire(e) {
-            this.wrapper.removeClass('required');
-            this.input.trigger('backpack:field.unrequire');
-            return this;
-        }
-
-        check(e) {
-            this.wrapper.find('input[type=checkbox]').prop('checked', true).trigger('change');
-            return this;
-        }
-
-        uncheck(e) {
-            this.wrapper.find('input[type=checkbox]').prop('checked', false).trigger('change');
-            return this;
+        uncheck() {
+            return this.check(false);
         }
     }
 
@@ -88,13 +108,21 @@
      * Window functions that help the developer easily select one or more fields.
      */
     window.crud = {
-        field: function(fieldName) {
-            return new CrudField(fieldName);
+        ...window.crud,
+
+        // Fields map
+        map: new Map(),
+
+        // Create a field from a given name
+        field: fieldName => {
+            if(!window.crud.map.has(fieldName)) {
+                window.crud.map.set(fieldName, new CrudField(fieldName));
+            }
+
+            return window.crud.map.get(fieldName);
         },
-        fields: function(fieldNamesArray) {
-            return fieldNamesArray.map(function(fieldName) {
-                return new CrudField(fieldName);
-            });
-        }
-    }
+
+        // Create all fields from a given name list
+        fields: fieldNamesArray => fieldNamesArray.map(fieldName => window.crud.field(fieldName)),
+    };
 </script>
