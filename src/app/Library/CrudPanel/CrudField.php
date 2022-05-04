@@ -219,7 +219,8 @@ class CrudField
      */
     public function morphTypes(array $morphTypeField)
     {
-        $this->crud()->modifyMorphTypeField(array_merge($this->attributes,$morphTypeField));
+        $this->crud()->modifyMorphTypeField(array_merge($this->attributes, $morphTypeField));
+
         return $this;
     }
 
@@ -250,6 +251,7 @@ class CrudField
     public function morphIds(array $morphIdField)
     {
         $this->crud()->modifyMorphIdField(array_merge($this->attributes, $morphIdField));
+
         return $this;
     }
 
@@ -329,7 +331,7 @@ class CrudField
     }
 
     /**
-     * Return the current field attributes
+     * Return the current field attributes.
      *
      * @return array
      */
