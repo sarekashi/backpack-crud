@@ -25,9 +25,8 @@ namespace Backpack\CRUD\app\Library\CrudPanel;
  * @method self wrapper(array $value)
  * @method self fake(bool $value)
  * @method self store_in(string $value)
- * @method self morphModels(array $value)
- * @method self morphIdField(array $value)
- * @method self morphTypeField(array $value)
+ * @method self morphTypes(array $value)
+ * @method self morphIds(array $value)
  */
 class CrudField
 {
@@ -199,33 +198,15 @@ class CrudField
     }
 
     /**
-     * when morphModels are defined, we should run the current field through
-     * the guessing functionality to setup everything we need and then
-     * setup the morphFields based on the provided options.
-     *
-     * @param  array  $models  The models to be used in the morphTo relation
-     * @return self
-     */
-    public function morphModels(array $models)
-    {
-        $this->attributes['morphModels'] = $models;
-        $this->crud()->addMorphOptionsToMorphFields($this->attributes);
-
-        return $this->save();
-    }
-
-    /**
      * allow the developer to configure the morphType field.
      *
      * @param  array  $morphTypeField
      * @return self
      */
-    public function morphTypeField(array $morphTypeField)
+    public function morphTypes(array $morphTypeField)
     {
-        $this->attributes['morphTypeField'] = $morphTypeField;
-        $this->crud()->modifyMorphTypeField($this->attributes);
-
-        return $this->save();
+        $this->crud()->modifyMorphTypeField(array_merge($this->attributes,$morphTypeField));
+        return $this;
     }
 
     /**
@@ -234,12 +215,10 @@ class CrudField
      * @param  array  $morphIdField
      * @return self
      */
-    public function morphIdField(array $morphIdField)
+    public function morphIds(array $morphIdField)
     {
-        $this->attributes['morphIdField'] = $morphIdField;
-        $this->crud()->modifyMorphIdField($this->attributes);
-
-        return $this->save();
+        $this->crud()->modifyMorphIdField(array_merge($this->attributes, $morphIdField));
+        return $this;
     }
 
     // ---------------
@@ -315,6 +294,16 @@ class CrudField
         dd($this);
 
         return $this;
+    }
+
+    /**
+     * Return the current field attributes
+     *
+     * @return array
+     */
+    public function getAttributes()
+    {
+        return $this->attributes;
     }
 
     // -------------

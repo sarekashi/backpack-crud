@@ -362,41 +362,13 @@ trait Relationships
      * @param  array  $field
      * @return void
      */
-    private function createMorphRelationFields(array $field)
+    private function createMorphToRelationFields(array $field)
     {
         [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
 
         if (! $this->hasFieldWhere('name', $morphTypeFieldName) && ! $this->hasFieldWhere('name', $morphIdFieldName)) {
             $this->addMorphRelationFields($field);
         }
-
-        if (isset($field['morphModels'])) {
-            $this->addMorphOptionsToMorphFields($field);
-        }
-    }
-
-    /**
-     * this function is responsible for modifying the morph fields and add
-     * the proper configuration after developer setup the `morphModels` in
-     * a fluent way.
-     *
-     * @param  array  $field
-     * @return void
-     */
-    public function addMorphOptionsToMorphFields($field)
-    {
-        [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
-
-        $modelOptions = [];
-        foreach ($field['morphModels'] as $key => $model) {
-            if (is_array($field['morphModels'][$key])) {
-                $modelOptions[] = $key;
-                continue;
-            }
-            $modelOptions[] = $model;
-        }
-        $this->modifyField($morphIdFieldName, ['morphModels' => $field['morphModels']]);
-        $this->modifyField($morphTypeFieldName, ['options' => array_combine($modelOptions, $modelOptions)]);
     }
 
     /**
@@ -407,8 +379,16 @@ trait Relationships
      */
     public function modifyMorphTypeField($field)
     {
+        
         [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
-        $this->modifyField($morphTypeFieldName, $field['morphTypeField']);
+        
+        $morphTypeField = $this->field($morphTypeFieldName)->getAttributes();
+        $morphIdField = $this->field($morphIdFieldName)->getAttributes();
+
+        $this->setMorphFieldsStructure($field, $morphTypeField, $morphIdField);
+        
+        $this->modifyField($morphTypeFieldName, array_merge($morphTypeField, array_diff_key($field, array_flip(['name', 'options']))));
+        $this->modifyField($morphIdFieldName, $morphIdField);
     }
 
     /**
@@ -420,7 +400,7 @@ trait Relationships
     public function modifyMorphIdField($field)
     {
         [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
-        $this->modifyField($morphIdFieldName, $field['morphIdField']);
+        $this->modifyField($morphIdFieldName, $field);
     }
 
     /**
@@ -432,12 +412,13 @@ trait Relationships
     private function getMorphToFieldNames(array $field)
     {
         $relation = (new $this->model)->{$field['name']}();
-
         return [$relation->getMorphType(), $relation->getForeignKeyName()];
     }
 
     /**
-     * this function is reponsible for adding both morph fields into the crud panel.
+     * this function is responsible for adding both morph fields into the crud panel.
+     * if developer is using array notation to define the fields it will also setup
+     * the morph fields stuctured
      *
      * @param  array  $field
      * @return void
@@ -445,12 +426,57 @@ trait Relationships
     private function addMorphRelationFields($field)
     {
         [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
-
         $morphTypeField = static::getMorphTypeFieldStructure($field['name'], $morphTypeFieldName);
         $morphIdField = static::getMorphIdFieldStructure($field['name'], $morphIdFieldName);
 
-        $this->addField(array_merge($morphTypeField, $field['morphTypeField'] ?? []));
-        $this->addField(array_merge($morphIdField, $field['morphIdField'] ?? []));
+        if(isset($field['morphTypes'])) {
+           $this->setMorphFieldsStructure($field, $morphTypeField, $morphIdField); 
+        }
+
+        $this->addField($morphTypeField);
+        $this->addField($morphIdField);
+    }
+
+    /**
+     * this function is responsible for setting up the morph fields structure in the given fields. 
+     * user can define the morph structure as follows:
+     *  [
+     *   'singleNameOnAMorphMap', // display the capitalized version of the morphMap name
+     *   'singleNameOnAMorphMap' => 'Desired display name',
+     *   'App\Models\Model', // display the name of the model
+     *   'App\Models\Model' => 'Desired display name',
+     *  ]
+     *  
+     * @param array $field
+     * @param array $morphTypeField
+     * @param array $morphIdField
+     * 
+     * @return void
+     */
+    private function setMorphFieldsStructure($field, &$morphTypeField, &$morphIdField) {
+        
+        $relationMorphMap = (new $this->model)->{$field['name']}()->morphMap();
+        foreach($field['options'] ?? [] as $key => $morphTypeOption) {
+            $morphType = is_string($key) ? $key : $morphTypeOption;
+            if(is_a($morphType, 'Illuminate\Database\Eloquent\Model', true)) {                
+                if(in_array($morphType, $relationMorphMap)) {
+                    $morphName = $relationMorphMap[array_search($morphType, $relationMorphMap)];
+                    $morphTypeField['options'][$morphName] = !is_string($key) ? Str::afterLast($morphType, '\\') : $morphTypeOption;
+                    $morphIdField['morphModels'][$morphName] = $morphType;   
+                }else{
+                    $morphTypeField['options'][$morphType] = !is_string($key) ? Str::afterLast($morphType, '\\') : $morphTypeOption;
+                    $morphIdField['morphModels'][$morphType] = $morphType;
+                }
+            }else{
+                if(!array_key_exists($morphType, $relationMorphMap)) {
+                    abort(500, 'Unknown morph type «'.$morphType.'», either the class doesnt exists, or the name was not found in the morphMap');
+                }           
+                $morphTypeField['options'][$morphType] = !is_string($key) ? ucfirst($morphType) : $morphTypeOption;
+                $morphIdField['morphModels'][$morphType] = $relationMorphMap[$morphType];
+            }
+        }
+        
+        $this->removeField($field['name']); 
     }
 
     /**
