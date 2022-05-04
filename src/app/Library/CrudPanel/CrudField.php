@@ -210,7 +210,7 @@ class CrudField
         $this->attributes['validationRules'] = $rules;
         $this->crud()->setValidationFromArray([$this->attributes['name'] => $rules]);
     }
-    
+
     /**
      * allow the developer to configure the morphType field.
      *
@@ -241,7 +241,7 @@ class CrudField
             return [$this->attributes['name'].'.'.$rule => $message];
         }, array_keys($messages), $messages)));
     }
-    
+
     /**
      * allow the developer to configure the morphId field.
      *
