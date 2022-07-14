@@ -48,11 +48,7 @@ trait Fields
         $field = $this->makeSureFieldHasLabel($field);
 
         if (isset($field['entity']) && $field['entity'] !== false) {
-            $field = $this->makeSureFieldHasRelationType($field);
-            $field = $this->makeSureFieldHasModel($field);
-            $field = $this->makeSureFieldHasAttribute($field);
-            $field = $this->makeSureFieldHasMultiple($field);
-            $field = $this->makeSureFieldHasPivot($field);
+            $field = $this->makeSureFieldHasRelationshipAttributes($field);
         }
 
         $field = $this->makeSureFieldHasType($field);
@@ -63,6 +59,24 @@ trait Fields
         if (isset($field['relation_type']) && $field['relation_type'] === 'MorphTo') {
             $this->createMorphToRelationFields($field);
         }
+
+        return $field;
+    }
+
+    /**
+     * When field is a relationship, Backpack will try to guess some basic attributes from the relation.
+     *
+     * @param  array  $field
+     * @return array
+     */
+    public function makeSureFieldHasRelationshipAttributes($field)
+    {
+        $field = $this->makeSureFieldHasRelationType($field);
+        $field = $this->makeSureFieldHasModel($field);
+        $field = $this->makeSureFieldHasAttribute($field);
+        $field = $this->makeSureFieldHasMultiple($field);
+        $field = $this->makeSureFieldHasPivot($field);
+        $field = $this->makeSureFieldHasType($field);
 
         return $field;
     }
@@ -469,6 +483,15 @@ trait Fields
     {
         $setting = $this->getOperationSetting('strippedRequest');
 
+        // if an invokable class was passed
+        // eg. \App\Http\Requests\BackpackStrippedRequest
+        if (class_exists($setting)) {
+            $setting = new $setting();
+
+            return is_callable($setting) ? $setting($request) : abort(500, get_class($setting).' is not invokable.');
+        }
+
+        // if a closure was passed
         if (is_callable($setting)) {
             return $setting($request);
         }
