@@ -403,7 +403,7 @@ trait Relationships
     public function modifyMorphIdField($field)
     {
         [$morphTypeFieldName, $morphIdFieldName] = $this->getMorphToFieldNames($field);
-        $this->modifyField($morphIdFieldName, $field);
+        $this->modifyField($morphIdFieldName, array_diff_key($field, array_flip(['name'])));
     }
 
     /**
