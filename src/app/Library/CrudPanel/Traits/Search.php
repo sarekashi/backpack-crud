@@ -365,7 +365,9 @@ trait Search
             ->with('column', $column)
             ->with('entry', $entry)
             ->with('rowNumber', $rowNumber)
-            ->render();
+            ->render(function($view, $contents) {
+                return preg_replace('/\s\s+/', ' ',str_replace(array("\r", "\n"), '', $contents));
+            });
     }
 
     /**

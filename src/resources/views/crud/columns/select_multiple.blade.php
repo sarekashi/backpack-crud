@@ -27,21 +27,13 @@
     @if(!empty($column['value']))
         {{ $column['prefix'] }}
         @foreach($column['value'] as $key => $text)
-            @php
-                $related_key = $key;
-            @endphp
-
-            <span class="d-inline-flex">
-                @includeWhen(!empty($column['wrapper']), 'crud::columns.inc.wrapper_start')
+            <span class="d-inline-flex">@includeWhen(!empty($column['wrapper']), 'crud::columns.inc.wrapper_start', ['related_key' => $key])
                     @if($column['escaped'])
                         {{ $text }}
                     @else
                         {!! $text !!}
                     @endif
-                @includeWhen(!empty($column['wrapper']), 'crud::columns.inc.wrapper_end')
-
-                @if(!$loop->last), @endif
-            </span>
+                @includeWhen(!empty($column['wrapper']), 'crud::columns.inc.wrapper_end', ['related_key' => $key])@if(!$loop->last),@endif</span>
         @endforeach
         {{ $column['suffix'] }}
     @else
